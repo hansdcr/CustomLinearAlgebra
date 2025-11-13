@@ -1,0 +1,31 @@
+# Core dependencies
+numpy>=1.24.0
+matplotlib>=3.7.0
+
+# 3D Visualization
+pyvista>=0.43.0
+
+# Interactive plots (optional, for Jupyter)
+ipympl>=0.9.0
+ipywidgets>=8.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Type checking (development)
+mypy>=1.5.0
+
+# Code formatting (development)
+black>=23.7.0
+isort>=5.12.0
+
+# Jupyter support
+jupyter>=1.0.0
+notebook>=7.0.0
+
+# Optional: for advanced visualizations
+plotly>=5.17.0
+
+# Optional: for symbolic math (verification)
+sympy>=1.12
