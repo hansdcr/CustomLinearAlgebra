@@ -139,6 +139,239 @@ def method_name(self, param: Type) -> ReturnType:
   - 边界情况
   - 异常情况
 
+## Python代码执行规范
+
+### 虚拟环境强制要求
+
+**核心规则**: 所有Python代码执行**必须**在虚拟环境中进行。
+
+#### 标准执行模板
+
+**✅ 正确的执行方式**:
+
+```bash
+# 方式1: 在命令前激活虚拟环境
+source venv/bin/activate && python3 script.py
+
+# 方式2: 使用完整路径
+venv/bin/python3 script.py
+
+# 方式3: 一条命令中激活并执行
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+```
+
+**❌ 错误的执行方式**:
+
+```bash
+# 错误1: 直接使用系统Python
+python3 script.py  # ❌ 可能找不到依赖
+
+# 错误2: 未激活虚拟环境就执行
+pytest tests/  # ❌ 可能使用系统pytest
+
+# 错误3: pip安装到系统
+pip install matplotlib  # ❌ 污染系统环境
+```
+
+### 常用操作的正确执行方式
+
+#### 1. 运行测试
+
+```bash
+# ✅ 正确
+source venv/bin/activate && pytest tests/test_vector2d.py -v
+
+# ✅ 或者
+venv/bin/pytest tests/test_vector2d.py -v
+
+# ❌ 错误
+pytest tests/test_vector2d.py  # 未激活虚拟环境
+```
+
+#### 2. 运行示例脚本
+
+```bash
+# ✅ 正确
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+
+# ✅ 或者
+venv/bin/python3 -c "import sys; sys.path.insert(0, '.'); from src.examples.iter01_vector2d_basic import visualize_basic_vectors; visualize_basic_vectors()"
+
+# ❌ 错误
+python3 src/examples/iter01_vector2d_basic.py  # 未激活虚拟环境
+```
+
+#### 3. 安装依赖
+
+```bash
+# ✅ 正确
+source venv/bin/activate && pip install matplotlib numpy
+
+# ✅ 或者
+venv/bin/pip install matplotlib numpy
+
+# ❌ 错误
+pip install matplotlib  # 安装到系统Python
+```
+
+#### 4. 交互式Python
+
+```bash
+# ✅ 正确
+source venv/bin/activate && python3
+
+# ✅ 或者
+venv/bin/python3
+
+# ❌ 错误
+python3  # 使用系统Python
+```
+
+#### 5. 代码验证
+
+```bash
+# ✅ 正确 - 快速验证代码
+source venv/bin/activate && python3 -c "from src.core.vector2d import Vector2D; v = Vector2D(3, 4); print(v.magnitude())"
+
+# ✅ 正确 - 使用heredoc执行多行代码
+source venv/bin/activate && python3 << 'EOF'
+from src.core.vector2d import Vector2D
+v = Vector2D(3, 4)
+print(f"Vector: {v}")
+print(f"Magnitude: {v.magnitude()}")
+EOF
+
+# ❌ 错误
+python3 -c "from src.core.vector2d import Vector2D; print(Vector2D(3,4).magnitude())"
+```
+
+### 虚拟环境检查
+
+在执行代码前,应该验证虚拟环境:
+
+```bash
+# 检查虚拟环境是否存在
+if [ -d "venv" ]; then
+    echo "✅ 虚拟环境存在"
+else
+    echo "❌ 虚拟环境不存在,需要创建"
+    python3 -m venv venv
+fi
+
+# 检查是否在虚拟环境中
+source venv/bin/activate && python3 -c "import sys; print('✅ 在虚拟环境中' if 'venv' in sys.prefix else '❌ 不在虚拟环境中')"
+```
+
+### 依赖管理
+
+#### 安装新依赖的流程
+
+1. **确保在虚拟环境中**:
+```bash
+source venv/bin/activate
+```
+
+2. **安装依赖**:
+```bash
+pip install <package-name>
+```
+
+3. **更新requirements.txt** (如果是新依赖):
+```bash
+pip freeze > requirements.txt
+```
+
+4. **验证安装**:
+```bash
+python3 -c "import <package-name>; print('✅ 安装成功')"
+```
+
+#### 同步依赖
+
+用户在learning分支同步代码后,可能需要同步依赖:
+
+```bash
+# 在虚拟环境中同步依赖
+source venv/bin/activate && pip install -r requirements.txt
+```
+
+### 可视化脚本执行
+
+可视化脚本通常需要设置matplotlib后端:
+
+```bash
+# ✅ 正确 - 后台执行(不弹窗)
+source venv/bin/activate && python3 << 'EOF'
+import matplotlib
+matplotlib.use('Agg')  # 使用非交互式后端
+from src.examples.iter01_vector2d_basic import visualize_basic_vectors
+visualize_basic_vectors()
+EOF
+
+# ✅ 正确 - 交互式执行(显示窗口)
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+```
+
+### 错误处理
+
+如果遇到模块找不到的错误:
+
+```python
+# 错误信息示例
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+**解决步骤**:
+
+1. **确认虚拟环境已激活**:
+```bash
+which python3  # 应该显示 .../venv/bin/python3
+```
+
+2. **检查依赖是否已安装**:
+```bash
+source venv/bin/activate && pip list | grep matplotlib
+```
+
+3. **如果未安装,安装依赖**:
+```bash
+source venv/bin/activate && pip install matplotlib
+```
+
+4. **重新运行代码**
+
+### Claude执行代码的检查清单
+
+每次执行Python代码前,必须确认:
+
+- [ ] 已激活虚拟环境 (`source venv/bin/activate`)
+- [ ] 或使用虚拟环境的Python路径 (`venv/bin/python3`)
+- [ ] 设置了PYTHONPATH (如果需要导入src模块)
+- [ ] 依赖已安装在虚拟环境中
+- [ ] 使用正确的matplotlib后端(可视化时)
+
+### 示例: 完整的工作流程
+
+```bash
+# 1. 检查虚拟环境
+ls venv/bin/python3 || python3 -m venv venv
+
+# 2. 激活虚拟环境
+source venv/bin/activate
+
+# 3. 安装/更新依赖
+pip install -r requirements.txt
+
+# 4. 运行测试
+PYTHONPATH=. pytest tests/ -v
+
+# 5. 运行示例
+PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+
+# 6. 验证代码
+python3 -c "from src.core.vector2d import Vector2D; print(Vector2D(3,4).magnitude())"
+```
+
 ## 沟通规范
 
 ### Claude Code的响应格式
@@ -180,9 +413,19 @@ def method_name(self, param: Type) -> ReturnType:
 ## 项目上下文
 
 ### 开发环境配置
-- **虚拟环境**: 使用 Conda 虚拟环境
-- **激活命令**: `conda activate LineAlgebra2`
-- **重要**: 所有代码运行、测试、依赖安装都必须在此虚拟环境中进行
+
+#### 虚拟环境要求
+
+本项目使用Python虚拟环境隔离依赖,**所有Python代码执行都必须在虚拟环境中进行**。
+
+**虚拟环境类型**:
+- 项目根目录的 `venv/` (Python标准venv)
+- 或用户配置的Conda环境 `LineAlgebra2`
+
+**重要原则**:
+- ⚠️ **绝对禁止**使用系统Python执行项目代码
+- ⚠️ **绝对禁止**在虚拟环境外安装依赖
+- ✅ **必须确保**每次执行Python命令前激活虚拟环境
 
 ### 当前迭代状态
 - 项目位置:`/Users/gelin/Desktop/store/dev/python/3.10/CustomLinearAlgebra`
