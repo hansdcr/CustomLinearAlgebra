@@ -196,6 +196,195 @@ def method_name(self, param: Type) -> ReturnType:
 - 为VR/XR开发打下数学基础
 - 理解每一行代码,而不是快速完成
 
+## Git 工作流程规范
+
+### 分支结构
+
+本项目使用三分支模型实现AI辅助学习与个人练习的隔离:
+
+```
+main (主分支)
+├── ai-dev (AI工作分支 - Claude在这里工作)
+└── learning (学习分支 - 用户练习空间)
+```
+
+### 分支说明
+
+| 分支 | 用途 | 使用者 | 更新频率 |
+|------|------|---------|---------|
+| `main` | 稳定版本,每个迭代完成后合并 | 合并操作 | 每个迭代完成后 |
+| `ai-dev` | AI开发新功能,生成代码 | Claude | 持续更新 |
+| `learning` | 用户练习和实验代码 | 用户 | 随时 |
+
+### Claude的工作流程
+
+#### 1. 开始新的开发任务
+```bash
+# 确保在ai-dev分支
+git checkout ai-dev
+
+# 拉取最新代码
+git pull origin ai-dev
+```
+
+#### 2. 开发过程中的提交规范
+
+**提交频率**: 每完成一个方法或功能点就提交
+
+**提交信息格式**:
+```
+迭代X: [动作] [内容]
+
+示例:
+- 迭代2: 实现向量加法方法 __add__
+- 迭代2: 添加向量加法单元测试
+- 迭代2: 创建向量加法可视化示例
+```
+
+**提交命令**:
+```bash
+git add <修改的文件>
+git commit -m "迭代X: 实现XXX方法"
+```
+
+#### 3. 推送代码
+```bash
+git push origin ai-dev
+```
+
+#### 4. 通知用户
+提交后应告知用户:
+```
+✅ 已提交新代码到 ai-dev 分支
+📝 提交信息: 迭代X: 实现XXX方法
+📂 修改文件: src/core/vector2d.py
+🔄 同步方法: 在learning分支执行 `git merge ai-dev`
+```
+
+### 迭代完成时的合并流程
+
+当一个完整迭代结束时:
+
+```bash
+# 1. 切换到main分支
+git checkout main
+
+# 2. 合并ai-dev的代码
+git merge ai-dev
+
+# 3. 打标签
+git tag -a iterXX-complete -m "迭代XX完成: [描述]"
+
+# 4. 推送
+git push origin main --tags
+
+# 5. 切回ai-dev继续工作
+git checkout ai-dev
+```
+
+### 提交信息模板
+
+#### 功能实现提交
+```bash
+git commit -m "迭代X: 实现[方法名]方法
+
+- 功能: [简要说明]
+- 文件: [修改的文件]
+- 测试: [是否添加测试]
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+#### 测试添加提交
+```bash
+git commit -m "迭代X: 添加[功能]的单元测试
+
+- 测试文件: tests/test_xxx.py
+- 测试用例数: X个
+- 覆盖场景: [列出场景]"
+```
+
+#### 文档更新提交
+```bash
+git commit -m "迭代X: 更新文档
+
+- 新增: docs/iterX-总结.md
+- 更新: [其他文档]"
+```
+
+### 用户同步代码的方式
+
+用户在 `learning` 分支可以通过以下方式同步AI的新代码:
+
+**方式1: 合并(保留用户更改)**
+```bash
+git checkout learning
+git merge ai-dev
+```
+
+**方式2: 完全同步(覆盖用户更改)**
+```bash
+git checkout learning
+git reset --hard ai-dev
+```
+
+**方式3: 选择性同步**
+```bash
+git cherry-pick <commit-hash>
+```
+
+### 文件组织规范
+
+#### 输出文件
+- 所有可视化图像输出到 `output/` 目录
+- 命名格式: `iterXX_[描述].png`
+
+#### 文档文件
+- 迭代总结: `docs/迭代X-总结.md`
+- 学习笔记: `notebooks/` 目录(如果有)
+
+### Git最佳实践
+
+#### ✅ 推荐做法
+- 小步提交,每个方法一个提交
+- 清晰的提交信息,说明做了什么
+- 定期推送到远程仓库
+- 迭代完成后及时合并到main并打标签
+
+#### ❌ 避免做法
+- 不要在main分支直接开发
+- 不要一次提交过多更改
+- 不要使用模糊的提交信息
+- 不要强制推送覆盖历史(除非必要)
+
+### 分支保护
+
+- **main分支**: 仅通过合并更新,不直接提交
+- **ai-dev分支**: Claude的工作分支,用户不应修改
+- **learning分支**: 用户的自由空间,可随意实验
+
+### 查看分支差异
+
+在提交前,可以查看与其他分支的差异:
+
+```bash
+# 查看ai-dev相比main的更改
+git diff main..ai-dev
+
+# 查看具体文件的差异
+git diff main..ai-dev -- src/core/vector2d.py
+
+# 查看提交历史差异
+git log main..ai-dev --oneline
+```
+
+### 详细文档
+
+完整的Git工作流程和命令参考,请查看:
+- `docs/Git工作流程.md` - 详细的工作流程说明
+- `docs/快速命令参考.md` - 常用命令速查
+
 ## 重要提醒
 
 ### ⚠️ 禁止行为
