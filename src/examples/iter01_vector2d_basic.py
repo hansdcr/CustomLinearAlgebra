@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.core.vector2d import Vector2D
 
+# 配置matplotlib支持中文显示
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei', 'STHeiti', 'Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+
 
 def plot_vector(ax, vector: Vector2D, origin=(0, 0), color='blue',
                 label='', width=0.01):
@@ -98,8 +102,14 @@ def visualize_basic_vectors():
     ax2.legend()
 
     plt.tight_layout()
-    plt.savefig('output_iter01_vectors.png', dpi=150, bbox_inches='tight')
-    print("图像已保存为: output_iter01_vectors.png")
+
+    # 确保output目录存在
+    import os
+    os.makedirs('output', exist_ok=True)
+
+    output_path = 'output/iter01_vectors.png'
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    print(f"图像已保存为: {output_path}")
     plt.show()
 
 
