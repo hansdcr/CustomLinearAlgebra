@@ -139,6 +139,239 @@ def method_name(self, param: Type) -> ReturnType:
   - 边界情况
   - 异常情况
 
+## Python代码执行规范
+
+### 虚拟环境强制要求
+
+**核心规则**: 所有Python代码执行**必须**在虚拟环境中进行。
+
+#### 标准执行模板
+
+**✅ 正确的执行方式**:
+
+```bash
+# 方式1: 在命令前激活虚拟环境
+source venv/bin/activate && python3 script.py
+
+# 方式2: 使用完整路径
+venv/bin/python3 script.py
+
+# 方式3: 一条命令中激活并执行
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+```
+
+**❌ 错误的执行方式**:
+
+```bash
+# 错误1: 直接使用系统Python
+python3 script.py  # ❌ 可能找不到依赖
+
+# 错误2: 未激活虚拟环境就执行
+pytest tests/  # ❌ 可能使用系统pytest
+
+# 错误3: pip安装到系统
+pip install matplotlib  # ❌ 污染系统环境
+```
+
+### 常用操作的正确执行方式
+
+#### 1. 运行测试
+
+```bash
+# ✅ 正确
+source venv/bin/activate && pytest tests/test_vector2d.py -v
+
+# ✅ 或者
+venv/bin/pytest tests/test_vector2d.py -v
+
+# ❌ 错误
+pytest tests/test_vector2d.py  # 未激活虚拟环境
+```
+
+#### 2. 运行示例脚本
+
+```bash
+# ✅ 正确
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+
+# ✅ 或者
+venv/bin/python3 -c "import sys; sys.path.insert(0, '.'); from src.examples.iter01_vector2d_basic import visualize_basic_vectors; visualize_basic_vectors()"
+
+# ❌ 错误
+python3 src/examples/iter01_vector2d_basic.py  # 未激活虚拟环境
+```
+
+#### 3. 安装依赖
+
+```bash
+# ✅ 正确
+source venv/bin/activate && pip install matplotlib numpy
+
+# ✅ 或者
+venv/bin/pip install matplotlib numpy
+
+# ❌ 错误
+pip install matplotlib  # 安装到系统Python
+```
+
+#### 4. 交互式Python
+
+```bash
+# ✅ 正确
+source venv/bin/activate && python3
+
+# ✅ 或者
+venv/bin/python3
+
+# ❌ 错误
+python3  # 使用系统Python
+```
+
+#### 5. 代码验证
+
+```bash
+# ✅ 正确 - 快速验证代码
+source venv/bin/activate && python3 -c "from src.core.vector2d import Vector2D; v = Vector2D(3, 4); print(v.magnitude())"
+
+# ✅ 正确 - 使用heredoc执行多行代码
+source venv/bin/activate && python3 << 'EOF'
+from src.core.vector2d import Vector2D
+v = Vector2D(3, 4)
+print(f"Vector: {v}")
+print(f"Magnitude: {v.magnitude()}")
+EOF
+
+# ❌ 错误
+python3 -c "from src.core.vector2d import Vector2D; print(Vector2D(3,4).magnitude())"
+```
+
+### 虚拟环境检查
+
+在执行代码前,应该验证虚拟环境:
+
+```bash
+# 检查虚拟环境是否存在
+if [ -d "venv" ]; then
+    echo "✅ 虚拟环境存在"
+else
+    echo "❌ 虚拟环境不存在,需要创建"
+    python3 -m venv venv
+fi
+
+# 检查是否在虚拟环境中
+source venv/bin/activate && python3 -c "import sys; print('✅ 在虚拟环境中' if 'venv' in sys.prefix else '❌ 不在虚拟环境中')"
+```
+
+### 依赖管理
+
+#### 安装新依赖的流程
+
+1. **确保在虚拟环境中**:
+```bash
+source venv/bin/activate
+```
+
+2. **安装依赖**:
+```bash
+pip install <package-name>
+```
+
+3. **更新requirements.txt** (如果是新依赖):
+```bash
+pip freeze > requirements.txt
+```
+
+4. **验证安装**:
+```bash
+python3 -c "import <package-name>; print('✅ 安装成功')"
+```
+
+#### 同步依赖
+
+用户在learning分支同步代码后,可能需要同步依赖:
+
+```bash
+# 在虚拟环境中同步依赖
+source venv/bin/activate && pip install -r requirements.txt
+```
+
+### 可视化脚本执行
+
+可视化脚本通常需要设置matplotlib后端:
+
+```bash
+# ✅ 正确 - 后台执行(不弹窗)
+source venv/bin/activate && python3 << 'EOF'
+import matplotlib
+matplotlib.use('Agg')  # 使用非交互式后端
+from src.examples.iter01_vector2d_basic import visualize_basic_vectors
+visualize_basic_vectors()
+EOF
+
+# ✅ 正确 - 交互式执行(显示窗口)
+source venv/bin/activate && PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+```
+
+### 错误处理
+
+如果遇到模块找不到的错误:
+
+```python
+# 错误信息示例
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+**解决步骤**:
+
+1. **确认虚拟环境已激活**:
+```bash
+which python3  # 应该显示 .../venv/bin/python3
+```
+
+2. **检查依赖是否已安装**:
+```bash
+source venv/bin/activate && pip list | grep matplotlib
+```
+
+3. **如果未安装,安装依赖**:
+```bash
+source venv/bin/activate && pip install matplotlib
+```
+
+4. **重新运行代码**
+
+### Claude执行代码的检查清单
+
+每次执行Python代码前,必须确认:
+
+- [ ] 已激活虚拟环境 (`source venv/bin/activate`)
+- [ ] 或使用虚拟环境的Python路径 (`venv/bin/python3`)
+- [ ] 设置了PYTHONPATH (如果需要导入src模块)
+- [ ] 依赖已安装在虚拟环境中
+- [ ] 使用正确的matplotlib后端(可视化时)
+
+### 示例: 完整的工作流程
+
+```bash
+# 1. 检查虚拟环境
+ls venv/bin/python3 || python3 -m venv venv
+
+# 2. 激活虚拟环境
+source venv/bin/activate
+
+# 3. 安装/更新依赖
+pip install -r requirements.txt
+
+# 4. 运行测试
+PYTHONPATH=. pytest tests/ -v
+
+# 5. 运行示例
+PYTHONPATH=. python3 src/examples/iter01_vector2d_basic.py
+
+# 6. 验证代码
+python3 -c "from src.core.vector2d import Vector2D; print(Vector2D(3,4).magnitude())"
+```
+
 ## 沟通规范
 
 ### Claude Code的响应格式
@@ -180,9 +413,19 @@ def method_name(self, param: Type) -> ReturnType:
 ## 项目上下文
 
 ### 开发环境配置
-- **虚拟环境**: 使用 Conda 虚拟环境
-- **激活命令**: `conda activate LineAlgebra2`
-- **重要**: 所有代码运行、测试、依赖安装都必须在此虚拟环境中进行
+
+#### 虚拟环境要求
+
+本项目使用Python虚拟环境隔离依赖,**所有Python代码执行都必须在虚拟环境中进行**。
+
+**虚拟环境类型**:
+- 项目根目录的 `venv/` (Python标准venv)
+- 或用户配置的Conda环境 `LineAlgebra2`
+
+**重要原则**:
+- ⚠️ **绝对禁止**使用系统Python执行项目代码
+- ⚠️ **绝对禁止**在虚拟环境外安装依赖
+- ✅ **必须确保**每次执行Python命令前激活虚拟环境
 
 ### 当前迭代状态
 - 项目位置:`/Users/gelin/Desktop/store/dev/python/3.10/CustomLinearAlgebra`
@@ -195,6 +438,195 @@ def method_name(self, param: Type) -> ReturnType:
 - 通过实践构建自定义线性代数库
 - 为VR/XR开发打下数学基础
 - 理解每一行代码,而不是快速完成
+
+## Git 工作流程规范
+
+### 分支结构
+
+本项目使用三分支模型实现AI辅助学习与个人练习的隔离:
+
+```
+main (主分支)
+├── ai-dev (AI工作分支 - Claude在这里工作)
+└── learning (学习分支 - 用户练习空间)
+```
+
+### 分支说明
+
+| 分支 | 用途 | 使用者 | 更新频率 |
+|------|------|---------|---------|
+| `main` | 稳定版本,每个迭代完成后合并 | 合并操作 | 每个迭代完成后 |
+| `ai-dev` | AI开发新功能,生成代码 | Claude | 持续更新 |
+| `learning` | 用户练习和实验代码 | 用户 | 随时 |
+
+### Claude的工作流程
+
+#### 1. 开始新的开发任务
+```bash
+# 确保在ai-dev分支
+git checkout ai-dev
+
+# 拉取最新代码
+git pull origin ai-dev
+```
+
+#### 2. 开发过程中的提交规范
+
+**提交频率**: 每完成一个方法或功能点就提交
+
+**提交信息格式**:
+```
+迭代X: [动作] [内容]
+
+示例:
+- 迭代2: 实现向量加法方法 __add__
+- 迭代2: 添加向量加法单元测试
+- 迭代2: 创建向量加法可视化示例
+```
+
+**提交命令**:
+```bash
+git add <修改的文件>
+git commit -m "迭代X: 实现XXX方法"
+```
+
+#### 3. 推送代码
+```bash
+git push origin ai-dev
+```
+
+#### 4. 通知用户
+提交后应告知用户:
+```
+✅ 已提交新代码到 ai-dev 分支
+📝 提交信息: 迭代X: 实现XXX方法
+📂 修改文件: src/core/vector2d.py
+🔄 同步方法: 在learning分支执行 `git merge ai-dev`
+```
+
+### 迭代完成时的合并流程
+
+当一个完整迭代结束时:
+
+```bash
+# 1. 切换到main分支
+git checkout main
+
+# 2. 合并ai-dev的代码
+git merge ai-dev
+
+# 3. 打标签
+git tag -a iterXX-complete -m "迭代XX完成: [描述]"
+
+# 4. 推送
+git push origin main --tags
+
+# 5. 切回ai-dev继续工作
+git checkout ai-dev
+```
+
+### 提交信息模板
+
+#### 功能实现提交
+```bash
+git commit -m "迭代X: 实现[方法名]方法
+
+- 功能: [简要说明]
+- 文件: [修改的文件]
+- 测试: [是否添加测试]
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+#### 测试添加提交
+```bash
+git commit -m "迭代X: 添加[功能]的单元测试
+
+- 测试文件: tests/test_xxx.py
+- 测试用例数: X个
+- 覆盖场景: [列出场景]"
+```
+
+#### 文档更新提交
+```bash
+git commit -m "迭代X: 更新文档
+
+- 新增: docs/iterX-总结.md
+- 更新: [其他文档]"
+```
+
+### 用户同步代码的方式
+
+用户在 `learning` 分支可以通过以下方式同步AI的新代码:
+
+**方式1: 合并(保留用户更改)**
+```bash
+git checkout learning
+git merge ai-dev
+```
+
+**方式2: 完全同步(覆盖用户更改)**
+```bash
+git checkout learning
+git reset --hard ai-dev
+```
+
+**方式3: 选择性同步**
+```bash
+git cherry-pick <commit-hash>
+```
+
+### 文件组织规范
+
+#### 输出文件
+- 所有可视化图像输出到 `output/` 目录
+- 命名格式: `iterXX_[描述].png`
+
+#### 文档文件
+- 迭代总结: `docs/迭代X-总结.md`
+- 学习笔记: `notebooks/` 目录(如果有)
+
+### Git最佳实践
+
+#### ✅ 推荐做法
+- 小步提交,每个方法一个提交
+- 清晰的提交信息,说明做了什么
+- 定期推送到远程仓库
+- 迭代完成后及时合并到main并打标签
+
+#### ❌ 避免做法
+- 不要在main分支直接开发
+- 不要一次提交过多更改
+- 不要使用模糊的提交信息
+- 不要强制推送覆盖历史(除非必要)
+
+### 分支保护
+
+- **main分支**: 仅通过合并更新,不直接提交
+- **ai-dev分支**: Claude的工作分支,用户不应修改
+- **learning分支**: 用户的自由空间,可随意实验
+
+### 查看分支差异
+
+在提交前,可以查看与其他分支的差异:
+
+```bash
+# 查看ai-dev相比main的更改
+git diff main..ai-dev
+
+# 查看具体文件的差异
+git diff main..ai-dev -- src/core/vector2d.py
+
+# 查看提交历史差异
+git log main..ai-dev --oneline
+```
+
+### 详细文档
+
+完整的Git工作流程和命令参考,请查看:
+- `docs/Git工作流程.md` - 详细的工作流程说明
+- `docs/快速命令参考.md` - 常用命令速查
 
 ## 重要提醒
 
